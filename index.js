@@ -4,7 +4,7 @@
  * npm install express
  * npm install bcrypt
  * npm install dotenv
- *
+ * npm install ejs
  * npm install express-session
  * npm install connect-mongo
  * Generate your own GUID for your node_session_secret
@@ -17,7 +17,7 @@
 require('dotenv').config();
 
 const express = require("express");
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3000;
 
 const app = express();
 
@@ -69,16 +69,30 @@ app.use(express.urlencoded({ extended: false }));
 //the content of a button is only it's label. it can have on-click events
 //but not action = post/get
 //https://stackoverflow.com/questions/16036041/can-a-html-button-perform-a-post-request
+// app.get("/", (req, res) => {
+//   res.send(`<h1>Welcome Daddy!</h1>
+//     <form action='/createUser' method='get'>
+//         <button>Sign up</button>
+//     </form>
+//     <form action='/login' method='get'>
+//         <button>Log in</button>
+//     </form>
+//   `);
+// });
+
 app.get("/", (req, res) => {
-  res.send(`<h1>Welcome Daddy!</h1>
-    <form action='/createUser' method='get'>
-        <button>Sign up</button>
-    </form>
-    <form action='/login' method='get'>
-        <button>Log in</button>
-    </form>
-  `);
+  res.render("index");
 });
+
+// used for building html pages as we go
+app.set('view engine', 'ejs');
+
+app.get('/about', (req,res) => {
+  var color = req.query.color;
+  if(!color) {
+    color = "black";
+  }
+})
 
 app.listen(port, () => {
   console.log("Node application listening on port " + port);
@@ -98,6 +112,9 @@ app.get("/about", (req, res) => {
     "<h1 style ='color:" + color + ";'>Site by Gabriel Fairbairn</h1>" + html
   );
 });
+
+// To change location of view files to a different folder than views
+// app.set('views', path.join(__dirname, '/views'));
 
 // 1.2 req.query.missing comes from /submitEmail response.
 // equivalent to localhost/3000/contact&missingPassword=1, where 1 is True
