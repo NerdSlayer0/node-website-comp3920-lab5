@@ -1,0 +1,23 @@
+<%- include("templates/header") %> 
+<body>
+    <form action='/loggingIn' method = 'post'>
+        <input name ='name' type='text' placeholder='name'>
+        <input name ='email' type='text' placeholder='email'>
+        <input name ='password' type='password' placeholder='password'></input>
+        <button>Submit</button>
+        </form>
+        <form action ='/back' method='get'>
+          <button>Back</button>
+        </form>
+
+    <% if (missing == 'name') { %>
+        name is required, Daddy
+    <% } else if (missing == 'password') { %>
+        password is required, Daddy
+    <% } else if (missing == 'email') { %>
+        email is required, Daddy
+    <% } else if (missing == 'userNotExist') { %>
+        user login not found, Daddy
+    <% } %>
+</body>
+<%- include("templates/footer") %> 

@@ -1,10 +1,12 @@
 /**
+ * Run using command nodemon index.js
  * Requirements to run beforehand:
  * npm install nodemon
  * npm install express
  * npm install bcrypt
  * npm install dotenv
  * npm install ejs
+ * npm install mysql2
  * npm install express-session
  * npm install connect-mongo
  * Generate your own GUID for your node_session_secret
@@ -17,7 +19,7 @@
 require('dotenv').config();
 
 const express = require("express");
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
 const app = express();
 
@@ -36,7 +38,16 @@ const mongodb_password = process.env.MONGODB_PASSWORD;
 const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
 const node_session_secret = process.env.NODE_SESSION_SECRET;
 
-const database_name = "myFirstDatabase";
+// allows us to use views
+app.set('view engine', 'ejs');
+
+// const database_name = "myFirstDatabase";
+// Replaced temp hard-coded database with real database
+const database = include('databaseConnection');
+const db_utils = include('database/db_utils');
+const success = db_utils.printMySQLVersion();
+
+
 var mongoStore = MongoStore.create({
   mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@azuretoronto.abbb12m.mongodb.net/${database_name}`,
   crypto: {
@@ -69,30 +80,22 @@ app.use(express.urlencoded({ extended: false }));
 //the content of a button is only it's label. it can have on-click events
 //but not action = post/get
 //https://stackoverflow.com/questions/16036041/can-a-html-button-perform-a-post-request
-// app.get("/", (req, res) => {
-//   res.send(`<h1>Welcome Daddy!</h1>
-//     <form action='/createUser' method='get'>
-//         <button>Sign up</button>
-//     </form>
-//     <form action='/login' method='get'>
-//         <button>Log in</button>
-//     </form>
-//   `);
-// });
-
 app.get("/", (req, res) => {
   res.render("index");
+
+  // Replaced by res.render
+
+  // res.send(`<h1>Welcome Daddy!</h1>
+  //   <form action='/createUser' method='get'>
+  //       <button>Sign up</button>
+  //   </form>
+  //   <form action='/login' method='get'>
+  //       <button>Log in</button>
+  //   </form>
+  // `);
 });
 
-// used for building html pages as we go
-app.set('view engine', 'ejs');
 
-app.get('/about', (req,res) => {
-  var color = req.query.color;
-  if(!color) {
-    color = "black";
-  }
-})
 
 app.listen(port, () => {
   console.log("Node application listening on port " + port);
@@ -108,66 +111,65 @@ app.get("/about", (req, res) => {
   html = `<form action ='/back' method='get'>
           <button>Back</button>
         </form>`;
-  res.send(
-    "<h1 style ='color:" + color + ";'>Site by Gabriel Fairbairn</h1>" + html
-  );
+  // res.send(
+  //   "<h1 style ='color:" + color + ";'>Site by Gabriel Fairbairn</h1>" + html
+  // );
+  res.render('about', {color: color});
 });
-
-// To change location of view files to a different folder than views
-// app.set('views', path.join(__dirname, '/views'));
 
 // 1.2 req.query.missing comes from /submitEmail response.
 // equivalent to localhost/3000/contact&missingPassword=1, where 1 is True
 // 1.5 Combined /contact with /login and /submitEmail with /loggingin
 app.get("/login", (req, res) => {
-  var missingName = req.query.missingName;
-  var missingEmail = req.query.missingEmail;
-  var missingPassword = req.query.missingPassword;
-  var notFound = req.query.notFound;
+  var missingSomething = req.query.somethingMissing;
+  res.render("login", {missing: missingSomething});
+  // Everything below replaced by res.render("login");
 
-  var html = `
-    Log in:
-    <form action='/loggingIn' method = 'post'>
-        <input name ='name' type='text' placeholder='name'>
-        <input name ='email' type='text' placeholder='email'>
-        <input name ='password' type='password' placeholder='password'></input>
-        <button>Submit</button>
-        </form>
-        <form action ='/back' method='get'>
-          <button>Back</button>
-        </form>
-    `;
-  if (missingEmail) {
-    //add html element to response data
-    html += "email is required, Daddy";
-  } else if (missingName) {
-    //add html element to response data
-    html += "name is required, Daddy";
-  } else if (missingPassword) {
-    //add html element to response data
-    html += "password is required, Daddy";
-  } else if (notFound) {
-    html += "user login not found, Daddy";
-  }
-  res.send(html);
+  // var html = `
+  //   Log in:
+    // <form action='/loggingIn' method = 'post'>
+    //     <input name ='name' type='text' placeholder='name'>
+    //     <input name ='email' type='text' placeholder='email'>
+    //     <input name ='password' type='password' placeholder='password'></input>
+    //     <button>Submit</button>
+    //     </form>
+    //     <form action ='/back' method='get'>
+    //       <button>Back</button>
+    //     </form>
+  //   `;
+  // if (missingEmail) {
+  //   //add html element to response data
+  //   html += "email is required, Daddy";
+  // } else if (missingName) {
+  //   //add html element to response data
+  //   html += "name is required, Daddy";
+  // } else if (missingPassword) {
+  //   //add html element to response data
+  //   html += "password is required, Daddy";
+  // } else if (notFound) {
+  //   html += "user login not found, Daddy";
+  // }
+  // res.send(html);
 });
 
 //Submitting the form leads to /submitUser with post request.
 //Sends response (html) to page
 app.get("/createUser", (req, res) => {
-  var html = `
-    <h2>Sign up:</h2>
-    <form action='/submitUser' method='post'>
-    <input name='name' type='text' placeholder='name'>
-    <input name='email' type='text' placeholder='email'>
-    <input name='password' type='password' placeholder='password'>
-    <button>Submit</button>
-    </form>
-    <form action ='/back' method='get'>
-    <button>Back</button>
-    </form>
-    `;
-  res.send(html);
+  res.render("createUser");
+  
+  // var html = `
+  //   <h2>Sign up:</h2>
+  //   <form action='/submitUser' method='post'>
+  //   <input name='name' type='text' placeholder='name'>
+  //   <input name='email' type='text' placeholder='email'>
+  //   <input name='password' type='password' placeholder='password'>
+  //   <button>Submit</button>
+  //   </form>
+  //   <form action ='/back' method='get'>
+  //   <button>Back</button>
+  //   </form>
+  //   `;
+  // res.send(html);
 });
 
 app.post("/submitUser", (req, res) => {
@@ -195,8 +197,33 @@ app.post("/submitUser", (req, res) => {
   //     "</li>";
   // }
   // var html = "<ul>" + usershtml + "</ul>";
-  res.redirect("/login");
+  if (nameInput == "") {
+    res.redirect("/login?somethingMissing=name");
+  } else if (emailInput == "") {
+    res.redirect("/login?somethingMissing=email");
+  } else if (passwordInput == "") {
+    res.redirect("/login?somethingMissing=password");
+  } else {
+    res.redirect("/login");
+  }
 });
+
+// Needs an async function because db involves waiting time
+// for query to return data
+app.get('/createTables', async (req,res) => {
+  /**
+   * NOT SURE HOW INCLUDE WORKS HERE?
+   */
+  const create_tables = include('database/create_tables');
+  var success = create_tables.createTables();
+  if (success) {
+    // Render success page if connection.createTables() worked
+    res.render("successMessage", {message: "created tables."});
+  } 
+  else {
+    res.render("errorMessage", {error: "Failed to create tables."});
+  }
+})
 
 // app.get/contact page redirects here using form action='/submitEmail'
 // Changed /submitEmail to /loggingIn
@@ -208,14 +235,14 @@ app.post("/loggingIn", (req, res) => {
   var password = req.body.password;
 
   console.log(email, name, password);
-  if (!email) {
-    res.redirect("/login?missingEmail=1");
+  if (!name) {
+    res.redirect("/login?somethingMissing=name");
   }
-  //   else if (!name) {
-  //     res.redirect("/login?missingName=1");
-  //   }
+  else if (!email) {
+    res.redirect("/login?somethingMissing=email");
+  }
   else if (!password) {
-    res.redirect("/login?missingPassword=1");
+    res.redirect("/login?somethingMissing=password");
   } else {
     // res.send("Thank you for subscribing, " + name + "!");
 
@@ -235,7 +262,7 @@ app.post("/loggingIn", (req, res) => {
       }
     }
     // If user/password not found:
-    res.redirect("/login?notFound=1");
+    res.redirect("/login?somethingMissing=userNotExist");
   }
 });
 
@@ -246,26 +273,7 @@ app.get("/members/name/:name", (req, res) => {
   if (!req.session.authenticated) {
     res.redirect("/login");
   }
-  var html =
-    `
-    Welcome, "` +
-    nameInput +
-    `"-daddy!
-    <form action='/logout' method='/get'><button>Log out</button></form>
-    `;
-  console.log(randomInt);
-  if (randomInt == 1) {
-    html += `Today\'s Mood: <br />Dank... <br /><img src='/dank.jpg' style='width:250px;'>`;
-  } else if (randomInt == 2) {
-    html += `Today\'s Mood: <br />What're u lookin at <br /><img src='/gebmeme.jpg' style='width:250px;'>`;
-  } else if (randomInt == 3) {
-    html += `Today\'s Mood: <br />Party til we die! <br /><img src='/coffin-dance.gif' style='width:250px;'>`;
-  }
-
-  html += `<form action ='/toAbout' method='post'>
-  <button>More Info</button>
-  </form>`;
-  res.send(html);
+  res.render("/members", {randomInt: randomInt});
 });
 
 app.get("/logout", (req, res) => {
@@ -274,17 +282,17 @@ app.get("/logout", (req, res) => {
 });
 
 //:id is a parameter for the request
-app.get("/cat/:id", (req, res) => {
-  var cat = req.params.id;
+// app.get("/cat/:id", (req, res) => {
+//   var cat = req.params.id;
 
-  if (cat == 1) {
-    res.send("Fluffy: <img src='/fluffy.gif' style='width:250px;'>");
-  } else if (cat == 2) {
-    res.send("Socks: <img src='/socks.gif' style='width:250px;'>");
-  } else {
-    res.send("Invalid cat id: " + cat);
-  }
-});
+//   if (cat == 1) {
+//     res.send("Fluffy: <img src='/fluffy.gif' style='width:250px;'>");
+//   } else if (cat == 2) {
+//     res.send("Socks: <img src='/socks.gif' style='width:250px;'>");
+//   } else {
+//     res.send("Invalid cat id: " + cat);
+//   }
+// });
 
 app.get("/back", (req, res) => {
   res.redirect("/");
@@ -300,5 +308,6 @@ app.use(express.static(__dirname + "/public"));
 app.get("*", (req, res) => {
   res.status(404);
   console.log("Page not found, Daddy - 404");
-  res.send("<img src='/404.gif' style ='width:500px;'>");
+  // res.send("<img src='/404.gif' style ='width:500px;'>");
+  res.render("404");
 });
