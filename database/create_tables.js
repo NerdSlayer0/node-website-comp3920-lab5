@@ -2,12 +2,13 @@ const database = include('databaseConnection');
 
 async function createTables() {
     let createUserSQL = `
-    CREATE TABLE IF NOT EXISTS user (
-        user_id INT NOT NULL AUTO_INCREMENT,
-        username VARCHAR(25) NOT NULL,
-        password VARCHAR(100) NOT NULL,
-        PRIMARY KEY (user_id),
-        UNIQUE INDEX unique_username (username ASC) VISIBLE
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INT NOT NULL AUTO_INCREMENT,
+            username VARCHAR(25) NOT NULL,
+            password VARCHAR(100) NOT NULL,
+            email VARCHAR(100) NOT NULL,
+            PRIMARY KEY (user_id),
+            UNIQUE INDEX username_unique (username ASC)
     );`;
 
     try {
@@ -23,3 +24,4 @@ async function createTables() {
 }
 
 module.exports = {createTables};
+

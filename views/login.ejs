@@ -1,7 +1,6 @@
 <%- include("templates/header") %> 
-<body>
     <form action='/loggingIn' method = 'post'>
-        <input name ='name' type='text' placeholder='name'>
+        <!-- <input name ='name' type='text' placeholder='name'> -->
         <input name ='email' type='text' placeholder='email'>
         <input name ='password' type='password' placeholder='password'></input>
         <button>Submit</button>
@@ -18,6 +17,7 @@
         email is required, Daddy
     <% } else if (missing == 'userNotExist') { %>
         user login not found, Daddy
+    <% } else if (missing == 'invalidEntry') { %>
+        invalid username or email
     <% } %>
-</body>
 <%- include("templates/footer") %> 

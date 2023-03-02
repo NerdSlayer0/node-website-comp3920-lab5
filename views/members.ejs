@@ -1,20 +1,25 @@
 <%- include("templates/header") %>
-<body>
-  <h1>Welcome, <%nameInput%>!</h1>
+  <h1>Welcome, <%=data.username%>!</h1>
   <form action="/logout" method="/get"><button>Log out</button></form>
-  <% if (randomInt == 1) { %> 
+  <% console.log("data.username: " + data.username); %>
+  <% if (data.randomInt == 1) { %> 
     Today's Mood: <br />Dank... <br /><img
     src="/dank.jpg"
     style="width: 250px"
   />
-  <% } else if (randomInt == 2) { %> 
-    Today\'s Mood: <br />What're u lookin at
+  <% } else if (data.randomInt == 2) { %> 
+    Today's Mood: <br />What're u lookin at
     <br /> <img src="/gebmeme.jpg" style="width: 250px" /> 
-  <% } else if (randomInt == 3) { %> 
+  <% } else if (data.randomInt == 3) { %> 
     Today's Mood: <br />Party til we die! <br /><img src="/coffin-dance.gif" style="width: 250px" />
+  <% } else { %> 
+    Breh.
   <% } %>
+  <br>
+  <form action="/todo" method="get">
+    <button>To Do's</button>
+  </form>
   <form action="/toAbout" method="post">
     <button>More Info</button>
   </form>
-</body>
 <%- include("templates/footer") %>

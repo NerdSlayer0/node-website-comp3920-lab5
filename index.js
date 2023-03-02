@@ -16,9 +16,11 @@
  */
 
 // Required for hiding passwords in .env security folder
-require('dotenv').config();
+require("./utils");
+require("dotenv").config();
 
 const express = require("express");
+
 const port = process.env.PORT || 8080;
 
 const app = express();
@@ -31,6 +33,13 @@ const expireTime = 60 * 60 * 1000;
 // Required middleware to connect to MongoDB
 const MongoStore = require("connect-mongo");
 
+const database_name = "myFirstDatabase";
+// Replaced temp hard-coded database with real database
+const database = include("databaseConnection");
+const db_utils = include("database/db_utils");
+const db_users = include("database/users");
+const success = db_utils.printMySQLVersion();
+
 // MongoDB login info hidden in separate environment file
 const mongodb_user = process.env.MONGODB_USER;
 const mongodb_password = process.env.MONGODB_PASSWORD;
@@ -39,14 +48,7 @@ const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
 const node_session_secret = process.env.NODE_SESSION_SECRET;
 
 // allows us to use views
-app.set('view engine', 'ejs');
-
-// const database_name = "myFirstDatabase";
-// Replaced temp hard-coded database with real database
-const database = include('databaseConnection');
-const db_utils = include('database/db_utils');
-const success = db_utils.printMySQLVersion();
-
+app.set("view engine", "ejs");
 
 var mongoStore = MongoStore.create({
   mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@azuretoronto.abbb12m.mongodb.net/${database_name}`,
@@ -70,32 +72,26 @@ app.use(
     resave: true,
   })
 );
-//temp substitute for database
-var users = [];
 
 //required for post requests, allows the middleware to send data as an object
 //Read more: https://stackoverflow.com/questions/23259168/what-are-express-json-and-express-urlencoded
 app.use(express.urlencoded({ extended: false }));
 
+app.use("/admin", adminAuthorization);
+app.use("/members", sessionValidation);
+app.use("/about", sessionValidation);
+app.use("/todo", sessionValidation);
+
 //the content of a button is only it's label. it can have on-click events
 //but not action = post/get
 //https://stackoverflow.com/questions/16036041/can-a-html-button-perform-a-post-request
 app.get("/", (req, res) => {
+  if (req.session.authenticated) {
+    res.redirect("/members/name/:username");
+  } else {
   res.render("index");
-
-  // Replaced by res.render
-
-  // res.send(`<h1>Welcome Daddy!</h1>
-  //   <form action='/createUser' method='get'>
-  //       <button>Sign up</button>
-  //   </form>
-  //   <form action='/login' method='get'>
-  //       <button>Log in</button>
-  //   </form>
-  // `);
+  }
 });
-
-
 
 app.listen(port, () => {
   console.log("Node application listening on port " + port);
@@ -104,17 +100,8 @@ app.listen(port, () => {
 //req is obtained from the html
 //req.query.color can be changed by html /about?color=blue
 app.get("/about", (req, res) => {
-  if (!req.session.authenticated) {
-    res.redirect("/");
-  }
   var color = req.query.color;
-  html = `<form action ='/back' method='get'>
-          <button>Back</button>
-        </form>`;
-  // res.send(
-  //   "<h1 style ='color:" + color + ";'>Site by Gabriel Fairbairn</h1>" + html
-  // );
-  res.render('about', {color: color});
+  res.render("about", { color: color });
 });
 
 // 1.2 req.query.missing comes from /submitEmail response.
@@ -122,57 +109,16 @@ app.get("/about", (req, res) => {
 // 1.5 Combined /contact with /login and /submitEmail with /loggingin
 app.get("/login", (req, res) => {
   var missingSomething = req.query.somethingMissing;
-  res.render("login", {missing: missingSomething});
-  // Everything below replaced by res.render("login");
-
-  // var html = `
-  //   Log in:
-    // <form action='/loggingIn' method = 'post'>
-    //     <input name ='name' type='text' placeholder='name'>
-    //     <input name ='email' type='text' placeholder='email'>
-    //     <input name ='password' type='password' placeholder='password'></input>
-    //     <button>Submit</button>
-    //     </form>
-    //     <form action ='/back' method='get'>
-    //       <button>Back</button>
-    //     </form>
-  //   `;
-  // if (missingEmail) {
-  //   //add html element to response data
-  //   html += "email is required, Daddy";
-  // } else if (missingName) {
-  //   //add html element to response data
-  //   html += "name is required, Daddy";
-  // } else if (missingPassword) {
-  //   //add html element to response data
-  //   html += "password is required, Daddy";
-  // } else if (notFound) {
-  //   html += "user login not found, Daddy";
-  // }
-  // res.send(html);
+  res.render("login", { missing: missingSomething });
 });
 
 //Submitting the form leads to /submitUser with post request.
 //Sends response (html) to page
 app.get("/createUser", (req, res) => {
   res.render("createUser");
-  
-  // var html = `
-  //   <h2>Sign up:</h2>
-  //   <form action='/submitUser' method='post'>
-  //   <input name='name' type='text' placeholder='name'>
-  //   <input name='email' type='text' placeholder='email'>
-  //   <input name='password' type='password' placeholder='password'>
-  //   <button>Submit</button>
-  //   </form>
-  //   <form action ='/back' method='get'>
-  //   <button>Back</button>
-  //   </form>
-  //   `;
-  // res.send(html);
 });
 
-app.post("/submitUser", (req, res) => {
+app.post("/submitUser", async (req, res) => {
   var nameInput = req.body.name;
   var emailInput = req.body.email;
   var passwordInput = req.body.password;
@@ -181,118 +127,189 @@ app.post("/submitUser", (req, res) => {
   var hashedPassword = bcrypt.hashSync(passwordInput, saltRounds);
   //push email/password as key, value pair to users[] list? doublecheck with Patrick
   //Example output: nerdslayer0: $2b$12$vrAnfJHQJw3sKmnn3yUejO4bm5q/DhI9nK4Kq7s4bRxuvS12Trwi2
-  users.push({ name: nameInput, email: emailInput, password: hashedPassword });
-  console.log(users);
 
-  //adds list items to html and sends it to the page
-  // var usershtml = "";
-  // for (i = 0; i < users.length; i++) {
-  //   usershtml +=
-  //     "<li>" +
-  //     users[i].name +
-  //     ": " +
-  //     users[i].email +
-  //     ": " +
-  //     users[i].password +
-  //     "</li>";
-  // }
-  // var html = "<ul>" + usershtml + "</ul>";
-  if (nameInput == "") {
-    res.redirect("/login?somethingMissing=name");
-  } else if (emailInput == "") {
-    res.redirect("/login?somethingMissing=email");
-  } else if (passwordInput == "") {
-    res.redirect("/login?somethingMissing=password");
-  } else {
+  //Replaces users.push
+  var success = await db_users.createUser({
+    user: nameInput,
+    email: emailInput,
+    passwordHash: hashedPassword,
+  });
+  // users.push({ name: nameInput, email: emailInput, password: hashedPassword });
+  // console.log(users);
+
+  // if (success) {
+  //   var results = await db_users.getUsers();
+  // TODO: Change this line to redirect to login with success line
+  // res.render("submitUser", { users: results });
+  //   res.render("login", {user: results});
+  // } else
+
+  if (!nameInput) {
+    res.render("createUser", { message: "name is required, daddy" });
+  } else if (!emailInput) {
+    res.render("createUser", { message: "email is required, daddy" });
+  } else if (!passwordInput) {
+    res.render("createUser", { message: "password is required, daddy" });
+  } else if (success) {
     res.redirect("/login");
+  } else {
+    res.redirect("/submitUser?somethingMissing=invalidEntry");
   }
 });
 
+app.get("/todo", async (req, res) => {
+  var username = req.session.username;
+  console.log("Session info: " + req.session.username);
+  var results = await db_utils.getTasks({
+    username: username
+  });
+  console.log("Results: " + results);
+  res.render("todo", { tasks: results });
+});
+function isValidSession(req) {
+  if (req.session.authenticated) {
+    return true;
+  }
+  return false;
+}
+
+app.post("/add", async (req, res) => {
+  // var user_id = req.session.user_id;
+  console.log("user_id: " + req.session.user_id);
+  var descriptionInput = req.body.addTask;
+  var message = req.params.message;
+
+  console.log("description input: " + descriptionInput);
+
+  if (!descriptionInput) {
+    res.render("todo", {message: "Description empty"});
+  }
+  var newDescription = await db_utils.addTask({
+    description: descriptionInput,
+    user_id: req.session.user_id
+  });
+
+  var results = await db_utils.getTasks({
+    username: req.session.username
+  });
+
+  if (newDescription) {
+    res.render("todo", { tasks: results });
+  } else {
+    res.render("todo", {message: "Description invalid"});
+  }
+
+})
+
+function sessionValidation(req, res, next) {
+  if (!isValidSession(req)) {
+    req.session.destroy();
+    res.redirect("/");
+    return;
+  } else {
+    next();
+  }
+}
+
+function isAdmin(req) {
+  if (req.session.user_type == "admin") {
+    return true;
+  }
+  return false;
+}
+
+function adminAuthorization(req, res, next) {
+  if (!isAdmin(req)) {
+    res.status(403);
+    res.render("errorMessage", { error: "Not Authorized" });
+    return;
+  } else {
+    next();
+  }
+}
+
 // Needs an async function because db involves waiting time
 // for query to return data
-app.get('/createTables', async (req,res) => {
-  /**
-   * NOT SURE HOW INCLUDE WORKS HERE?
-   */
-  const create_tables = include('database/create_tables');
+// TODO use this to make to-do list for each user
+app.get("/createTables", async (req, res) => {
+  // Include just takes from outside classes
+  const create_tables = include("database/create_tables");
   var success = create_tables.createTables();
   if (success) {
     // Render success page if connection.createTables() worked
-    res.render("successMessage", {message: "created tables."});
-  } 
-  else {
-    res.render("errorMessage", {error: "Failed to create tables."});
+    res.render("successMessage", { message: "created tables." });
+  } else {
+    res.render("errorMessage", { error: "Failed to create tables." });
   }
-})
+});
+
+app.get("/createUser", (req, res) => {
+  // var message = req.params.message;
+  // console.log("message received: " + message);
+  res.render("createUser", { message: "Something" });
+});
 
 // app.get/contact page redirects here using form action='/submitEmail'
 // Changed /submitEmail to /loggingIn
 // 1.7 Added session info
-app.post("/loggingIn", (req, res) => {
+app.post("/loggingIn", async (req, res) => {
   //pulls req from the body's 'email' field that was sent from a form
-  var email = req.body.email;
-  var name = req.body.name;
+  var username = req.body.name;
+  var inputEmail = req.body.email;
   var password = req.body.password;
 
-  console.log(email, name, password);
-  if (!name) {
-    res.redirect("/login?somethingMissing=name");
-  }
-  else if (!email) {
+  if (!inputEmail) {
     res.redirect("/login?somethingMissing=email");
-  }
-  else if (!password) {
+  } else if (!password) {
     res.redirect("/login?somethingMissing=password");
   } else {
-    // res.send("Thank you for subscribing, " + name + "!");
+    results = await db_users.getUser({
+      user: username,
+      email: inputEmail,
+      passwordHash: password,
+    });
 
-    // Empties the list of previously logged in users?
-    var usershtml = "";
-    // Loop through list of users, if there is a match,
-    // use bcrypt to compare password with encrypted password
-    for (i = 0; i < users.length; i++) {
-      if (users[i].email == email) {
-        if (bcrypt.compareSync(password, users[i].password)) {
+    // console.log(inputEmail, username, password);
+    if (results) {
+      if (results.length == 1) {
+        if (bcrypt.compareSync(password, results[0].password)) {
           req.session.authenticated = true;
-          req.session.username = name;
+          req.session.username = results[0].username;
+          req.session.user_id = results[0].user_id;
+          console.log("REQ.SESSION.USER_ID " + req.session.user_id);
           req.session.cookie.maxAge = expireTime;
-          res.redirect("/members/name/" + name);
+          res.redirect("/members/name/" + results[0].username);
           return;
         }
+      } else if (results.length > 1) {
+        console.log(
+          "invalid number of users matched: " +
+            results.length +
+            " (expected 1)."
+        );
+        res.redirect("/login?somethingMissing=invalidEntry");
+        return;
       }
+    } else {
+      // If user/password not found:
+      res.redirect("/login?somethingMissing=userNotExist");
     }
-    // If user/password not found:
-    res.redirect("/login?somethingMissing=userNotExist");
   }
 });
 
-app.get("/members/name/:name", (req, res) => {
-  var nameInput = req.params.name;
+app.get("/members/name/:username", (req, res) => {
+  var nameInput = req.params.username;
   console.log("name input: " + nameInput);
   var randomInt = Math.floor(Math.random() * 3 + 1);
-  if (!req.session.authenticated) {
-    res.redirect("/login");
-  }
-  res.render("/members", {randomInt: randomInt});
+  res.render("members", {
+    data: { username: nameInput, randomInt: randomInt },
+  });
 });
 
 app.get("/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
 });
-
-//:id is a parameter for the request
-// app.get("/cat/:id", (req, res) => {
-//   var cat = req.params.id;
-
-//   if (cat == 1) {
-//     res.send("Fluffy: <img src='/fluffy.gif' style='width:250px;'>");
-//   } else if (cat == 2) {
-//     res.send("Socks: <img src='/socks.gif' style='width:250px;'>");
-//   } else {
-//     res.send("Invalid cat id: " + cat);
-//   }
-// });
 
 app.get("/back", (req, res) => {
   res.redirect("/");
@@ -308,6 +325,5 @@ app.use(express.static(__dirname + "/public"));
 app.get("*", (req, res) => {
   res.status(404);
   console.log("Page not found, Daddy - 404");
-  // res.send("<img src='/404.gif' style ='width:500px;'>");
   res.render("404");
 });
