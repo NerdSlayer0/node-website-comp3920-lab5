@@ -89,7 +89,7 @@ app.get("/", (req, res) => {
   if (req.session.authenticated) {
     res.redirect("/members/name/:username");
   } else {
-  res.render("index");
+    res.render("index");
   }
 });
 
@@ -115,7 +115,8 @@ app.get("/login", (req, res) => {
 //Submitting the form leads to /submitUser with post request.
 //Sends response (html) to page
 app.get("/createUser", (req, res) => {
-  res.render("createUser");
+  var message = req.params.message;
+  res.render("createUser", { message: message });
 });
 
 app.post("/submitUser", async (req, res) => {
@@ -161,7 +162,7 @@ app.get("/todo", async (req, res) => {
   var username = req.session.username;
   console.log("Session info: " + req.session.username);
   var results = await db_utils.getTasks({
-    username: username
+    username: username,
   });
   console.log("Results: " + results);
   res.render("todo", { tasks: results });
@@ -182,24 +183,22 @@ app.post("/add", async (req, res) => {
   console.log("description input: " + descriptionInput);
 
   if (!descriptionInput) {
-    res.render("todo", {message: "Description empty"});
-  }
-  var newDescription = await db_utils.addTask({
-    description: descriptionInput,
-    user_id: req.session.user_id
-  });
-
-  var results = await db_utils.getTasks({
-    username: req.session.username
-  });
-
-  if (newDescription) {
-    res.render("todo", { tasks: results });
+    res.redirect("/todo");
   } else {
-    res.render("todo", {message: "Description invalid"});
-  }
+    var newDescription = await db_utils.addTask({
+      description: descriptionInput,
+      user_id: req.session.user_id,
+    });
 
-})
+    var results = await db_utils.getTasks({
+      username: req.session.username,
+    });
+
+    if (newDescription) {
+      res.render("todo", { tasks: results });
+    } 
+  }
+});
 
 function sessionValidation(req, res, next) {
   if (!isValidSession(req)) {
