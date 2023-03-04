@@ -30,21 +30,21 @@ async function createUser(postData) {
     }
 };
 
-async function getUsers(postData) {
-    let getUsersSQL = `
-    SELECT username, user_id, email, password, type
+async function getUserById(postData) {
+    let getUserSQL = `
+    SELECT username
     FROM users
-    JOIN user_type ON users.user_type = user_type.user_type_id;
-    `;
+    WHERE user_id = :user_id;`
+
+    let params = {
+        user_id: postData.userId
+    }
 
     try {
-        const results = await database.query(getUsersSQL);
-        console.log("Successfully retrieved users");
-        console.log(results[0].username + " " + results[0].password);
+        var results = await database.query(getUserSQL, params);
+        console.log("Query results: " + results[0]);
         return results[0];
-    }
-    catch (err) {
-        console.log("Error getting users");
+    } catch (err) {
         console.log(err);
         return false;
     }
@@ -61,12 +61,6 @@ async function getUser(postData) {
         email: postData.email
     }
 
-    // results = await db_utils.getUsers({
-    //     user: username,
-    //     email: inputEmail,
-    //     hashedPassword: password,
-    //   });
-
     console.log("params email: " + params.email);
     try {
         const results = await database.query(getUserSQL, params);
@@ -80,4 +74,4 @@ async function getUser(postData) {
     }
 }
 
-module.exports = {createUser, getUsers, getUser};
+module.exports = {createUser, getUserById, getUser};

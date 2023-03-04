@@ -2,9 +2,3 @@
     <h1 style='color:red'>Error!</h1>
     <div><%= error %> </div>
 <%- include("templates/footer") %> 
-<% console.log(tasks); 
-let i=0; %> 
-
-<% for(i=0; i < tasks.length; i++) { %> 
-  <%- include('templates/task', { tasks: tasks[i]}) %> 
-<% } %>

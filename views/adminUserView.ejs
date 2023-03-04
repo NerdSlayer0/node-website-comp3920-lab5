@@ -1,0 +1,21 @@
+<%- include("templates/header") %>
+  
+    <h1>Admin Page</h1>
+    <h2>Welcome, <%username%>!</h2>
+    Select a user to see their To Do list
+    <br>
+    <table>
+        <tr>
+            <td>User ID</td>
+            <td>Username</td>
+            <td>Email</td>
+            <td>User Type</td>
+            <td>Task List Link</td>
+        </tr>
+    <% let i = 0%>
+    <% for (i = 0; i<users.length; i++) { %>
+        <%- include("templates/adminUserViewTemplate", {user: users[i]}) %>
+    <% } %>
+
+    </table>
+<%- include("templates/footer") %>

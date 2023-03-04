@@ -1,8 +1,7 @@
 <%- include("templates/header") %>
   <h1>Welcome, <%=data.username%>!</h1>
   <form action="/logout" method="/get"><button>Log out</button></form>
-  <% console.log("data.username: " + data.username); %>
-  <% if (data.randomInt == 1) { %> 
+  <%if (data.randomInt == 1) { %> 
     Today's Mood: <br />Dank... <br /><img
     src="/dank.jpg"
     style="width: 250px"
@@ -16,7 +15,8 @@
     Breh.
   <% } %>
   <br>
-  <form action="/todo" method="get">
+  <!-- var tasklistQuery = "/tasklist/" + data.username; -->
+  <form action = "/tasklist" method="get">
     <button>To Do's</button>
   </form>
   <form action="/toAbout" method="post">

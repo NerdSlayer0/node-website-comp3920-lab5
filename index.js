@@ -38,7 +38,7 @@ const database_name = "myFirstDatabase";
 const database = include("databaseConnection");
 const db_utils = include("database/db_utils");
 const db_users = include("database/users");
-const success = db_utils.printMySQLVersion();
+const db_admin = include("database/admin");
 
 // MongoDB login info hidden in separate environment file
 const mongodb_user = process.env.MONGODB_USER;
@@ -80,7 +80,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use("/admin", adminAuthorization);
 app.use("/members", sessionValidation);
 app.use("/about", sessionValidation);
-app.use("/todo", sessionValidation);
+app.use("/tasklist", sessionValidation);
 
 //the content of a button is only it's label. it can have on-click events
 //but not action = post/get
@@ -124,26 +124,14 @@ app.post("/submitUser", async (req, res) => {
   var emailInput = req.body.email;
   var passwordInput = req.body.password;
 
-  //Hashes the password instead of using pushing raw password
   var hashedPassword = bcrypt.hashSync(passwordInput, saltRounds);
-  //push email/password as key, value pair to users[] list? doublecheck with Patrick
-  //Example output: nerdslayer0: $2b$12$vrAnfJHQJw3sKmnn3yUejO4bm5q/DhI9nK4Kq7s4bRxuvS12Trwi2
-
-  //Replaces users.push
   var success = await db_users.createUser({
     user: nameInput,
     email: emailInput,
     passwordHash: hashedPassword,
   });
-  // users.push({ name: nameInput, email: emailInput, password: hashedPassword });
 
-  // if (success) {
-  //   var results = await db_users.getUsers();
   // TODO: Change this line to redirect to login with success line
-  // res.render("submitUser", { users: results });
-  //   res.render("login", {user: results});
-  // } else
-
   if (!nameInput) {
     res.render("createUser", { message: "name is required, daddy" });
   } else if (!emailInput) {
@@ -153,18 +141,24 @@ app.post("/submitUser", async (req, res) => {
   } else if (success) {
     res.redirect("/login");
   } else {
-    res.redirect("/submitUser?somethingMissing=invalidEntry");
+    res.render("createUser", { message: "user already exists" });
   }
 });
 
-app.get("/todo", async (req, res) => {
+app.get("/tasklist", async (req, res) => {
   var user_id = req.session.user_id;
-  var message = req.params.message;
-  
+  var missingSomething = req.query.somethingMissing;
   var results = await db_utils.getTasks({
     user_id: user_id
   });
-  res.render("todo", {tasks: results, message: message});
+
+  if (missingSomething) {
+    res.render("tasklist", { tasks: results, missing: missingSomething });
+  // if (req.query.username != req.session.username && req.session.user_type == 2) {
+  //   res.redirect('/');
+  } else {
+    res.render("tasklist", { tasks: results });
+  }
 });
 
 function isValidSession(req) {
@@ -176,28 +170,21 @@ function isValidSession(req) {
 
 app.post("/add", async (req, res) => {
   // var user_id = req.session.user_id;
-  console.log("user_id: " + req.session.user_id);
   var descriptionInput = req.body.addTask;
-
-  console.log("description input: " + descriptionInput);
-
+  console.log(descriptionInput);
   if (!descriptionInput) {
-    res.redirect("/todo", {message: "Enter a description, Daddy"});
-    return
+    res.redirect("/tasklist?somethingMissing=1");
+    return;
   } else {
     var newDescription = await db_utils.addTask({
       description: descriptionInput,
       user_id: req.session.user_id,
     });
 
-    // var results = await db_utils.getTasks({
-    //   username: req.session.username,
-    // });
-
     if (newDescription) {
-      res.redirect("/todo");
-      return
-    } 
+      res.redirect("/tasklist");
+      return;
+    }
   }
 });
 
@@ -205,14 +192,14 @@ function sessionValidation(req, res, next) {
   if (!isValidSession(req)) {
     req.session.destroy();
     res.redirect("/");
-    return
+    return;
   } else {
     next();
   }
 }
 
 function isAdmin(req) {
-  if (req.session.user_type == "admin") {
+  if (req.session.user_type == 'admin') {
     return true;
   }
   return false;
@@ -222,7 +209,7 @@ function adminAuthorization(req, res, next) {
   if (!isAdmin(req)) {
     res.status(403);
     res.render("errorMessage", { error: "Not Authorized" });
-    return
+    return;
   } else {
     next();
   }
@@ -230,7 +217,6 @@ function adminAuthorization(req, res, next) {
 
 // Needs an async function because db involves waiting time
 // for query to return data
-// TODO use this to make to-do list for each user
 app.get("/createTables", async (req, res) => {
   // Include just takes from outside classes
   const create_tables = include("database/create_tables");
@@ -242,12 +228,6 @@ app.get("/createTables", async (req, res) => {
     res.render("errorMessage", { error: "Failed to create tables." });
   }
 });
-
-// app.get("/createUser", (req, res) => {
-  // var message = req.params.message;
-  // console.log("message received: " + message);
-//   res.render("createUser", { message: "Something" });
-// });
 
 // app.get/contact page redirects here using form action='/submitEmail'
 // Changed /submitEmail to /loggingIn
@@ -263,17 +243,19 @@ app.post("/loggingIn", async (req, res) => {
   } else if (!password) {
     res.redirect("/login?somethingMissing=password");
   } else {
-    results = await db_users.getUser({
+    var results = await db_users.getUser({
       email: inputEmail,
-      passwordHash: password
+      passwordHash: password,
     });
+
+    // Sorry this is so nested, it's only because I followed step by step and things stacked up
     if (results) {
       if (results.length == 1) {
         if (bcrypt.compareSync(password, results[0].password)) {
           req.session.authenticated = true;
           req.session.username = results[0].username;
           req.session.user_id = results[0].user_id;
-          req.session.user_type = results[0].user_type;
+          req.session.user_type = results[0].type;
           req.session.cookie.maxAge = expireTime;
           res.redirect("/members/name/" + results[0].username);
         }
@@ -292,12 +274,40 @@ app.post("/loggingIn", async (req, res) => {
   }
 });
 
+app.get("/members", (req, res) => {
+  if (results[0].type == 2) {
+    res.redirect("/members/name/" + results[0].username);
+    return
+  } else {
+    res.redirect("/admin" + results[0].username);
+    return
+  }
+});
+
 app.get("/members/name/:username", (req, res) => {
   var nameInput = req.session.username;
   var randomInt = Math.floor(Math.random() * 3 + 1);
   res.render("members", {
     data: { username: nameInput, randomInt: randomInt },
   });
+});
+
+app.get("/admin", async (req, res)=> {
+  var results = await db_admin.getUsers();
+  var username = req.session.username;
+  res.render("adminUserView", {username: username, users: results});
+});
+
+app.get("/userTasks/:user_id", async (req, res) => {
+  var userId = req.params.user_id;
+  console.log("userId: " + userId);
+  // TODO: Task list doesn't show up
+  var taskResults = await db_admin.getUserTasks(userId);
+  console.log("taskResults: " + taskResults);
+  var username = await db_users.getUserById(userId);
+  console.log("userResults: " + username);
+
+  res.render("adminTaskView", {tasks: taskResults, username: username});
 });
 
 app.get("/logout", (req, res) => {

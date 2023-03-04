@@ -1,0 +1,16 @@
+<%- include("templates/header") %>
+  
+    <h1><%username%>'s Task List</h1>
+    <table>
+        <tr>
+            <td>Task ID</td>
+            <td>Task Description</td>
+        </tr>
+    <%let i = 0%>
+    <% for (i = 0; i<tasks.length; i++) { %>
+        <%- include("templates/adminTaskViewTemplate", {task: tasks[i]}) %>
+    <% } %>
+    </table>
+    <br><br>
+    <button onclick="previous()">Back</button>
+<%- include("templates/footer") %>

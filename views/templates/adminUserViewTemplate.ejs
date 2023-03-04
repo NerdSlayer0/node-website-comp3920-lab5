@@ -1,0 +1,7 @@
+<tr>
+  <td><%= user.user_id%></td>
+  <td><%= user.username %></td>
+  <td><%= user.email %></td>
+  <td><%= user.type%></td>
+  <td><form action="/userTasks/<%=user.user_id%>" method = "get"><button>See Tasks</button></form></td>
+</tr>
