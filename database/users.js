@@ -32,8 +32,9 @@ async function createUser(postData) {
 
 async function getUsers(postData) {
     let getUsersSQL = `
-    SELECT username, user_id, email, password
-    FROM users;
+    SELECT username, user_id, email, password, type
+    FROM users
+    JOIN user_type ON users.user_type = user_type.user_type_id;
     `;
 
     try {

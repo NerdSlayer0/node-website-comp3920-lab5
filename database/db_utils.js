@@ -23,11 +23,11 @@ async function getTasks(postData) {
 	let sqlQuery = `
 		SELECT task_id, description FROM tasks
 		JOIN users USING (user_id)
-		WHERE users.username = :username;
+		WHERE users.user_id = :user_id;
 	`;
 
 	let params = {
-        username: postData.username
+        user_id: postData.user_id
     }
 
 	try {
