@@ -87,7 +87,7 @@ app.use("/todo", sessionValidation);
 //https://stackoverflow.com/questions/16036041/can-a-html-button-perform-a-post-request
 app.get("/", (req, res) => {
   if (req.session.authenticated) {
-    res.redirect("/members/name/:username");
+    res.redirect("/members/name/" + req.session.username);
   } else {
     res.render("index");
   }
@@ -136,7 +136,6 @@ app.post("/submitUser", async (req, res) => {
     passwordHash: hashedPassword,
   });
   // users.push({ name: nameInput, email: emailInput, password: hashedPassword });
-  // console.log(users);
 
   // if (success) {
   //   var results = await db_users.getUsers();
@@ -159,14 +158,15 @@ app.post("/submitUser", async (req, res) => {
 });
 
 app.get("/todo", async (req, res) => {
-  var username = req.session.username;
-  console.log("Session info: " + req.session.username);
+  var user_id = req.session.user_id;
+  var message = req.params.message;
+  
   var results = await db_utils.getTasks({
-    username: username,
+    user_id: user_id
   });
-  console.log("Results: " + results);
-  res.render("todo", { tasks: results });
+  res.render("todo", {tasks: results, message: message});
 });
+
 function isValidSession(req) {
   if (req.session.authenticated) {
     return true;
@@ -178,24 +178,25 @@ app.post("/add", async (req, res) => {
   // var user_id = req.session.user_id;
   console.log("user_id: " + req.session.user_id);
   var descriptionInput = req.body.addTask;
-  var message = req.params.message;
 
   console.log("description input: " + descriptionInput);
 
   if (!descriptionInput) {
-    res.redirect("/todo");
+    res.redirect("/todo", {message: "Enter a description, Daddy"});
+    return
   } else {
     var newDescription = await db_utils.addTask({
       description: descriptionInput,
       user_id: req.session.user_id,
     });
 
-    var results = await db_utils.getTasks({
-      username: req.session.username,
-    });
+    // var results = await db_utils.getTasks({
+    //   username: req.session.username,
+    // });
 
     if (newDescription) {
-      res.render("todo", { tasks: results });
+      res.redirect("/todo");
+      return
     } 
   }
 });
@@ -204,7 +205,7 @@ function sessionValidation(req, res, next) {
   if (!isValidSession(req)) {
     req.session.destroy();
     res.redirect("/");
-    return;
+    return
   } else {
     next();
   }
@@ -221,7 +222,7 @@ function adminAuthorization(req, res, next) {
   if (!isAdmin(req)) {
     res.status(403);
     res.render("errorMessage", { error: "Not Authorized" });
-    return;
+    return
   } else {
     next();
   }
@@ -242,18 +243,18 @@ app.get("/createTables", async (req, res) => {
   }
 });
 
-app.get("/createUser", (req, res) => {
+// app.get("/createUser", (req, res) => {
   // var message = req.params.message;
   // console.log("message received: " + message);
-  res.render("createUser", { message: "Something" });
-});
+//   res.render("createUser", { message: "Something" });
+// });
 
 // app.get/contact page redirects here using form action='/submitEmail'
 // Changed /submitEmail to /loggingIn
 // 1.7 Added session info
 app.post("/loggingIn", async (req, res) => {
   //pulls req from the body's 'email' field that was sent from a form
-  var username = req.body.name;
+  // var username = req.body.name;
   var inputEmail = req.body.email;
   var password = req.body.password;
 
@@ -263,22 +264,18 @@ app.post("/loggingIn", async (req, res) => {
     res.redirect("/login?somethingMissing=password");
   } else {
     results = await db_users.getUser({
-      user: username,
       email: inputEmail,
-      passwordHash: password,
+      passwordHash: password
     });
-
-    // console.log(inputEmail, username, password);
     if (results) {
       if (results.length == 1) {
         if (bcrypt.compareSync(password, results[0].password)) {
           req.session.authenticated = true;
           req.session.username = results[0].username;
           req.session.user_id = results[0].user_id;
-          console.log("REQ.SESSION.USER_ID " + req.session.user_id);
+          req.session.user_type = results[0].user_type;
           req.session.cookie.maxAge = expireTime;
           res.redirect("/members/name/" + results[0].username);
-          return;
         }
       } else if (results.length > 1) {
         console.log(
@@ -287,7 +284,6 @@ app.post("/loggingIn", async (req, res) => {
             " (expected 1)."
         );
         res.redirect("/login?somethingMissing=invalidEntry");
-        return;
       }
     } else {
       // If user/password not found:
@@ -297,8 +293,7 @@ app.post("/loggingIn", async (req, res) => {
 });
 
 app.get("/members/name/:username", (req, res) => {
-  var nameInput = req.params.username;
-  console.log("name input: " + nameInput);
+  var nameInput = req.session.username;
   var randomInt = Math.floor(Math.random() * 3 + 1);
   res.render("members", {
     data: { username: nameInput, randomInt: randomInt },

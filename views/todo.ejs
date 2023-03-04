@@ -8,12 +8,18 @@
   <tr>
     Description
   </tr>
-  <% let i=0; %> <% for(i=0; i < tasks.length; i++) { %> <%-
-  include('templates/task', {tasks: tasks[i]}) %> <% } %>
+  <% console.log(tasks); 
+  let i=0; %> 
+
+  <% for(i=0; i < tasks.length; i++) { %> 
+    <%- include('templates/task', { tasks: tasks[i]}) %> 
+  <% } %>
 </table>
+<br>
 <form action="/add" method="post">
   <input name="addTask" type="text" placeholder="Who's been a bad boy?"/>
   <button type="submit">Submit</button>
 </form>
-
+<br><br>
+<button onclick="previous()">Back</button>
 <%- include("templates/footer") %>
