@@ -1,6 +1,6 @@
 <%- include("templates/header") %>
   
-    <h1><%username%>'s Task List</h1>
+    <h1><%=username%>'s Task List</h1>
     <table>
         <tr>
             <td>Task ID</td>
@@ -13,4 +13,5 @@
     </table>
     <br><br>
     <button onclick="previous()">Back</button>
+    <form action="/logout" method="/get"><button>Log out</button></form>
 <%- include("templates/footer") %>

@@ -37,7 +37,7 @@ async function getUserById(postData) {
     WHERE user_id = :user_id;`
 
     let params = {
-        user_id: postData.userId
+        user_id: postData
     }
 
     try {

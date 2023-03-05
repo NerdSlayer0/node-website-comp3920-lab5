@@ -257,7 +257,11 @@ app.post("/loggingIn", async (req, res) => {
           req.session.user_id = results[0].user_id;
           req.session.user_type = results[0].type;
           req.session.cookie.maxAge = expireTime;
-          res.redirect("/members/name/" + results[0].username);
+          if (req.session.user_type == 'user') {
+            res.redirect("/members/name/" + results[0].username);
+          } else {
+            res.redirect("/admin");
+          }
         }
       } else if (results.length > 1) {
         console.log(
@@ -303,11 +307,10 @@ app.get("/userTasks/:user_id", async (req, res) => {
   console.log("userId: " + userId);
   // TODO: Task list doesn't show up
   var taskResults = await db_admin.getUserTasks(userId);
-  console.log("taskResults: " + taskResults);
-  var username = await db_users.getUserById(userId);
-  console.log("userResults: " + username);
+  var usernameResults = await db_users.getUserById(userId);
+  console.log("userResults: " + usernameResults[0].username);
 
-  res.render("adminTaskView", {tasks: taskResults, username: username});
+  res.render("adminTaskView", {tasks: taskResults, username: usernameResults[0].username});
 });
 
 app.get("/logout", (req, res) => {

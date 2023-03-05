@@ -9,7 +9,7 @@ async function getUserTasks(postData) {
         WHERE user_id = :user_id;
     `
     var params = {
-        user_id: postData.userId
+        user_id: postData
     }
 
     try {
