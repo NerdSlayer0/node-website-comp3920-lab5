@@ -1,0 +1,28 @@
+{
+  "name": "website-comp3920-lab5",
+  "version": "1.0.0",
+  "description": "v1.0 - Simple Website using Node.js\r ===================================\r - To test:\r open browser at: http://buawnkpeht.us18.qoddiapp.com/\r You should see Hello World in large print (an <H1> tag)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NerdSlayer0/node-website-comp3920-lab5.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NerdSlayer0/node-website-comp3920-lab5/issues"
+  },
+  "homepage": "https://github.com/NerdSlayer0/node-website-comp3920-lab5#readme",
+  "dependencies": {
+    "bcrypt": "^5.1.0",
+    "connect-mongo": "^4.6.0",
+    "dotenv": "^16.0.3",
+    "ejs": "^3.1.8",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "mysql2": "^3.2.0"
+  }
+}
