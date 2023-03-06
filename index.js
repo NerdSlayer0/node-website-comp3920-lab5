@@ -33,7 +33,7 @@ const expireTime = 60 * 60 * 1000;
 // Required middleware to connect to MongoDB
 const MongoStore = require("connect-mongo");
 
-const database_name = "sql9602711";
+const database_name = "myFirstDatabase";
 // Replaced temp hard-coded database with real database
 const database = include("databaseConnection");
 const db_utils = include("database/db_utils");
